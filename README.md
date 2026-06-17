@@ -9,6 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v1.4.0 | [`v1.4.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.4.0) | [`4416908`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/4416908fa0c624afeaffdc83cedea3a9076a437c) |
+| v1.4.1 | [`v1.4.1`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.4.1) | [`5b67512`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/5b675129e6aa73a496c939eb1f4a9fe4502fc324) |
 
 ## Privacy
 
