@@ -1,0 +1,56 @@
+name: Test SSH setup with custom socket path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Generate a temporary SSH key pair for testing
+        run: |
+          ssh-keygen -t ed25519 -f /tmp/test_key_custom -N "" -C "test@example.com"
+          echo "TEST_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key_custom >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - id: setup-ssh
+        name: Run SSH setup action with custom socket
+        uses: .
+        with:
+          ssh-private-key: ${{ env.TEST_PRIVATE_KEY }}
+          ssh-host: github.com
+          ssh-socket: /tmp/custom-ssh-auth.sock
+
+      - name: Assert SSH_AUTH_SOCK points to custom socket
+        run: |
+          echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
+          if [ -z "$SSH_AUTH_SOCK" ]; then
+            echo "FAIL: SSH_AUTH_SOCK is not set"
+            exit 1
+          fi
+          if [ "$SSH_AUTH_SOCK" != "/tmp/custom-ssh-auth.sock" ]; then
+            echo "FAIL: expected SSH_AUTH_SOCK=/tmp/custom-ssh-auth.sock, got $SSH_AUTH_SOCK"
+            exit 1
+          fi
+          echo "PASS: SSH_AUTH_SOCK correctly set to /tmp/custom-ssh-auth.sock"
+
+      - name: Assert custom socket file exists
+        run: |
+          if [ ! -S "/tmp/custom-ssh-auth.sock" ]; then
+            echo "FAIL: custom socket file /tmp/custom-ssh-auth.sock does not exist or is not a socket"
+            exit 1
+          fi
+          echo "PASS: custom socket file exists"
+
+      - name: Assert SSH agent has the key loaded via custom socket
+        env:
+          SSH_AUTH_SOCK: /tmp/custom-ssh-auth.sock
+        run: |
+          KEY_COUNT=$(ssh-add -l 2>/dev/null | wc -l)
+          echo "Keys in agent: $KEY_COUNT"
+          if [ "$KEY_COUNT" -lt 1 ]; then
+            echo "FAIL: No keys loaded in SSH agent via custom socket"
+            exit 1
+          fi
+          echo "PASS: SSH agent has $KEY_COUNT key(s) loaded via custom socket"

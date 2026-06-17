@@ -1,0 +1,56 @@
+name: Test basic SSH setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Generate a temporary SSH key pair for testing
+        run: |
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -C "test@example.com"
+          echo "TEST_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - id: setup-ssh
+        name: Run SSH setup action
+        uses: .
+        with:
+          ssh-private-key: ${{ env.TEST_PRIVATE_KEY }}
+          ssh-host: github.com
+
+      - name: Assert SSH_AUTH_SOCK is set
+        run: |
+          echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
+          if [ -z "$SSH_AUTH_SOCK" ]; then
+            echo "FAIL: SSH_AUTH_SOCK is not set"
+            exit 1
+          fi
+          echo "PASS: SSH_AUTH_SOCK is set to $SSH_AUTH_SOCK"
+
+      - name: Assert SSH agent has the key loaded
+        run: |
+          KEY_COUNT=$(ssh-add -l 2>/dev/null | wc -l)
+          echo "Keys in agent: $KEY_COUNT"
+          if [ "$KEY_COUNT" -lt 1 ]; then
+            echo "FAIL: No keys loaded in SSH agent"
+            exit 1
+          fi
+          echo "PASS: SSH agent has $KEY_COUNT key(s) loaded"
+
+      - name: Assert known_hosts contains github.com
+        run: |
+          KNOWN_HOSTS_FILE="$HOME/.ssh/known_hosts"
+          echo "Checking known_hosts at: $KNOWN_HOSTS_FILE"
+          if [ ! -f "$KNOWN_HOSTS_FILE" ]; then
+            echo "FAIL: known_hosts file does not exist"
+            exit 1
+          fi
+          if ! grep -q "github.com" "$KNOWN_HOSTS_FILE"; then
+            echo "FAIL: github.com not found in known_hosts"
+            cat "$KNOWN_HOSTS_FILE"
+            exit 1
+          fi
+          echo "PASS: github.com found in known_hosts"
