@@ -1,0 +1,52 @@
+name: Test SSH setup with custom socket path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Generate test SSH key
+        run: |
+          ssh-keygen -t rsa -b 2048 -f /tmp/test_key -N "" -q
+          echo "TEST_SSH_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - id: action
+        uses: .
+        with:
+          ssh-private-key: ${{ env.TEST_SSH_KEY }}
+          ssh-host: github.com
+          ssh-socket: /tmp/custom-ssh-socket.sock
+
+      - name: Assert custom socket file exists
+        run: |
+          echo "Checking custom socket path /tmp/custom-ssh-socket.sock..."
+          if [ ! -S /tmp/custom-ssh-socket.sock ]; then
+            echo "FAIL: custom socket file not found at /tmp/custom-ssh-socket.sock"
+            ls -la /tmp/*.sock 2>/dev/null || echo "(no .sock files in /tmp)"
+            exit 1
+          fi
+          echo "PASS: custom socket file exists"
+
+      - name: Assert SSH agent is accessible via custom socket
+        env:
+          SSH_AUTH_SOCK: /tmp/custom-ssh-socket.sock
+        run: |
+          echo "Checking SSH agent via custom socket..."
+          if ! ssh-add -l > /dev/null 2>&1; then
+            echo "FAIL: SSH agent not accessible via custom socket"
+            exit 1
+          fi
+          echo "PASS: SSH agent accessible via custom socket"
+
+      - name: Assert known_hosts populated
+        run: |
+          echo "Checking known_hosts..."
+          if ! grep -q "github.com" ~/.ssh/known_hosts; then
+            echo "FAIL: github.com not found in known_hosts"
+            exit 1
+          fi
+          echo "PASS: known_hosts populated with github.com"

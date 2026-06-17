@@ -1,0 +1,43 @@
+name: Test basic SSH setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Generate test SSH key
+        run: |
+          ssh-keygen -t rsa -b 2048 -f /tmp/test_key -N "" -q
+          echo "TEST_SSH_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - id: action
+        uses: .
+        with:
+          ssh-private-key: ${{ env.TEST_SSH_KEY }}
+          ssh-host: github.com
+          ssh-socket: /tmp/ssh-auth-test.sock
+
+      - name: Assert known_hosts contains github.com
+        run: |
+          echo "Checking known_hosts for github.com..."
+          if ! grep -q "github.com" ~/.ssh/known_hosts; then
+            echo "FAIL: github.com not found in known_hosts"
+            cat ~/.ssh/known_hosts || echo "(known_hosts is empty or missing)"
+            exit 1
+          fi
+          echo "PASS: github.com found in known_hosts"
+
+      - name: Assert SSH agent is running
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-auth-test.sock
+        run: |
+          echo "Checking SSH agent..."
+          if ! ssh-add -l > /dev/null 2>&1; then
+            echo "FAIL: SSH agent not running or no keys loaded"
+            exit 1
+          fi
+          echo "PASS: SSH agent is running with keys"
