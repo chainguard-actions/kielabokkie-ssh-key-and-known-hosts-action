@@ -1,0 +1,49 @@
+name: Test SSH setup with custom socket
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Generate test SSH key
+        run: |
+          ssh-keygen -t ed25519 -f /tmp/test_key_socket -N "" -C "test@example.com"
+          echo "TEST_SSH_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key_socket >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - id: action
+        uses: .
+        with:
+          ssh-private-key: ${{ env.TEST_SSH_KEY }}
+          ssh-host: github.com
+          ssh-socket: /tmp/custom-ssh-auth.sock
+
+      - name: Assert SSH_AUTH_SOCK points to custom socket
+        run: |
+          echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
+          if [ -z "$SSH_AUTH_SOCK" ]; then
+            echo "FAIL: SSH_AUTH_SOCK is not set"
+            exit 1
+          fi
+          if [ "$SSH_AUTH_SOCK" != "/tmp/custom-ssh-auth.sock" ]; then
+            echo "FAIL: expected SSH_AUTH_SOCK=/tmp/custom-ssh-auth.sock, got $SSH_AUTH_SOCK"
+            exit 1
+          fi
+          echo "PASS: SSH_AUTH_SOCK is set to custom socket path"
+
+      - name: Assert known_hosts contains github.com
+        run: |
+          KNOWN_HOSTS_FILE="$HOME/.ssh/known_hosts"
+          if [ ! -f "$KNOWN_HOSTS_FILE" ]; then
+            echo "FAIL: known_hosts file does not exist"
+            exit 1
+          fi
+          if ! grep -q "github.com" "$KNOWN_HOSTS_FILE"; then
+            echo "FAIL: github.com not found in known_hosts"
+            cat "$KNOWN_HOSTS_FILE"
+            exit 1
+          fi
+          echo "PASS: github.com found in known_hosts"
