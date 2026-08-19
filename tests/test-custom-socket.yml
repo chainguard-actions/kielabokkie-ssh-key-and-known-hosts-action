@@ -1,4 +1,4 @@
-name: Test SSH setup with custom socket
+name: Test SSH setup with custom socket path
 on:
   workflow_dispatch:
 jobs:
@@ -7,43 +7,50 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Generate test SSH key
+      - name: Generate test SSH key pair
         run: |
-          ssh-keygen -t ed25519 -f /tmp/test_key_socket -N "" -C "test@example.com"
-          echo "TEST_SSH_KEY<<EOF" >> $GITHUB_ENV
+          ssh-keygen -t ed25519 -f /tmp/test_key_socket -N "" -C "test-socket@example.com"
+          echo "TEST_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
           cat /tmp/test_key_socket >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - id: action
         uses: .
         with:
-          ssh-private-key: ${{ env.TEST_SSH_KEY }}
+          ssh-private-key: ${{ env.TEST_PRIVATE_KEY }}
           ssh-host: github.com
-          ssh-socket: /tmp/custom-ssh-auth.sock
+          ssh-port: '22'
+          ssh-socket: '/tmp/my-custom-ssh.sock'
 
-      - name: Assert SSH_AUTH_SOCK points to custom socket
+      - name: Assert custom SSH agent socket file exists
         run: |
-          echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
-          if [ -z "$SSH_AUTH_SOCK" ]; then
-            echo "FAIL: SSH_AUTH_SOCK is not set"
+          echo "Checking custom SSH agent socket file..."
+          SOCK="/tmp/my-custom-ssh.sock"
+          if [ ! -S "$SOCK" ]; then
+            echo "FAIL: Custom SSH agent socket file not found at $SOCK"
+            ls -la /tmp/*.sock 2>/dev/null || echo "(no .sock files in /tmp)"
             exit 1
           fi
-          if [ "$SSH_AUTH_SOCK" != "/tmp/custom-ssh-auth.sock" ]; then
-            echo "FAIL: expected SSH_AUTH_SOCK=/tmp/custom-ssh-auth.sock, got $SSH_AUTH_SOCK"
-            exit 1
-          fi
-          echo "PASS: SSH_AUTH_SOCK is set to custom socket path"
+          echo "PASS: Custom SSH agent socket exists at $SOCK"
 
       - name: Assert known_hosts contains github.com
         run: |
-          KNOWN_HOSTS_FILE="$HOME/.ssh/known_hosts"
-          if [ ! -f "$KNOWN_HOSTS_FILE" ]; then
-            echo "FAIL: known_hosts file does not exist"
-            exit 1
-          fi
-          if ! grep -q "github.com" "$KNOWN_HOSTS_FILE"; then
+          echo "Checking known_hosts for github.com..."
+          if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
             echo "FAIL: github.com not found in known_hosts"
-            cat "$KNOWN_HOSTS_FILE"
+            cat ~/.ssh/known_hosts 2>/dev/null || echo "(known_hosts file does not exist)"
             exit 1
           fi
           echo "PASS: github.com found in known_hosts"
+
+      - name: Assert SSH agent has key loaded via custom socket
+        run: |
+          echo "Checking loaded keys via custom socket..."
+          SOCK="/tmp/my-custom-ssh.sock"
+          KEY_COUNT=$(SSH_AUTH_SOCK="$SOCK" ssh-add -l 2>/dev/null | wc -l)
+          echo "Keys loaded: $KEY_COUNT"
+          if [ "$KEY_COUNT" -lt 1 ]; then
+            echo "FAIL: No keys loaded in SSH agent via custom socket"
+            exit 1
+          fi
+          echo "PASS: SSH agent has keys loaded via custom socket"
