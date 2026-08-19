@@ -1,4 +1,4 @@
-name: Test basic SSH setup
+name: Test SSH setup with custom port and socket
 on:
   workflow_dispatch:
 jobs:
@@ -19,8 +19,12 @@ jobs:
         with:
           ssh-private-key: ${{ env.TEST_SSH_KEY }}
           ssh-host: github.com
+          ssh-port: '22'
+          ssh-socket: '/tmp/custom-ssh-auth.sock'
 
-      - name: Assert SSH_AUTH_SOCK is set
+      - name: Assert SSH_AUTH_SOCK is set to custom socket path
+        env:
+          ACTUAL: ${{ env.SSH_AUTH_SOCK }}
         run: |
           echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
           if [ -z "$SSH_AUTH_SOCK" ]; then
