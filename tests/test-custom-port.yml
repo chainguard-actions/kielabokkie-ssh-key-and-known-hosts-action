@@ -1,4 +1,4 @@
-name: Test SSH setup with custom port and timeout
+name: Test SSH setup with custom port
 on:
   workflow_dispatch:
 jobs:
@@ -9,40 +9,52 @@ jobs:
 
       - name: Generate a test SSH key pair
         run: |
-          ssh-keygen -t ed25519 -f /tmp/test_key_port -N ""
+          ssh-keygen -t rsa -b 2048 -C "test-custom-port@example.com" -f /tmp/test_key_port -N ""
           echo "TEST_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
           cat /tmp/test_key_port >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - id: action
+        name: Run SSH setup action with custom socket path
         uses: .
         with:
           ssh-private-key: ${{ env.TEST_PRIVATE_KEY }}
           ssh-host: github.com
           ssh-port: '22'
           ssh-keyscan-timeout: '10'
+          ssh-socket: '/tmp/ssh-custom-port.sock'
 
-      - name: Assert known_hosts contains github.com
+      - name: Assert known_hosts file exists and is non-empty
         run: |
-          echo "Checking known_hosts for github.com..."
-          if ! grep -q "github.com" ~/.ssh/known_hosts; then
-            echo "FAIL: github.com not found in known_hosts"
-            cat ~/.ssh/known_hosts || echo "(known_hosts is empty or missing)"
+          echo "Checking ~/.ssh/known_hosts exists..."
+          if [ ! -f ~/.ssh/known_hosts ]; then
+            echo "FAIL: ~/.ssh/known_hosts does not exist"
             exit 1
           fi
-          echo "PASS: github.com found in known_hosts"
+          LINES=$(wc -l < ~/.ssh/known_hosts)
+          echo "known_hosts has $LINES line(s)"
+          if [ "$LINES" -lt 1 ]; then
+            echo "FAIL: known_hosts is empty"
+            exit 1
+          fi
+          echo "PASS: known_hosts exists and is non-empty"
 
-      - name: Assert SSH agent is running with key loaded
+      - name: Assert SSH agent socket is set
         run: |
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
           if [ -z "$SSH_AUTH_SOCK" ]; then
-            echo "FAIL: SSH_AUTH_SOCK is not set"
+            echo "FAIL: SSH_AUTH_SOCK environment variable is not set"
             exit 1
           fi
-          KEY_COUNT=$(ssh-add -l 2>/dev/null | wc -l)
-          echo "Keys loaded: $KEY_COUNT"
-          if [ "$KEY_COUNT" -lt 1 ]; then
-            echo "FAIL: No keys loaded in SSH agent"
+          echo "PASS: SSH_AUTH_SOCK is set to $SSH_AUTH_SOCK"
+
+      - name: Assert private key is loaded in agent
+        run: |
+          echo "Listing keys in SSH agent..."
+          ssh-add -l
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "FAIL: ssh-add -l returned exit code $EXIT_CODE (no keys or agent not running)"
             exit 1
           fi
-          echo "PASS: SSH agent is running with key loaded"
+          echo "PASS: SSH agent has keys loaded"

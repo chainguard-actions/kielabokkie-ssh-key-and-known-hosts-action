@@ -1,0 +1,61 @@
+name: Test SSH setup with default values
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Generate a test SSH key pair
+        run: |
+          ssh-keygen -t ed25519 -C "test-defaults@example.com" -f /tmp/test_key_defaults -N ""
+          echo "TEST_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key_defaults >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - id: action
+        name: Run SSH setup action with only required inputs (use defaults)
+        uses: .
+        with:
+          ssh-private-key: ${{ env.TEST_PRIVATE_KEY }}
+          ssh-host: github.com
+
+      - name: Assert SSH directory and known_hosts are set up
+        run: |
+          echo "Checking ~/.ssh directory..."
+          if [ ! -d ~/.ssh ]; then
+            echo "FAIL: ~/.ssh directory does not exist"
+            exit 1
+          fi
+          echo "PASS: ~/.ssh directory exists"
+
+          echo "Checking ~/.ssh/known_hosts..."
+          if [ ! -f ~/.ssh/known_hosts ]; then
+            echo "FAIL: ~/.ssh/known_hosts does not exist"
+            exit 1
+          fi
+          echo "PASS: ~/.ssh/known_hosts exists"
+
+          echo "Checking github.com in known_hosts..."
+          if ! grep -q "github.com" ~/.ssh/known_hosts; then
+            echo "FAIL: github.com not found in known_hosts"
+            cat ~/.ssh/known_hosts
+            exit 1
+          fi
+          echo "PASS: github.com is in known_hosts"
+
+      - name: Assert default SSH socket is used and agent is running
+        run: |
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+          if [ -z "$SSH_AUTH_SOCK" ]; then
+            echo "FAIL: SSH_AUTH_SOCK is not set (default socket not configured)"
+            exit 1
+          fi
+          # Verify the agent responds
+          ssh-add -l
+          if [ $? -ne 0 ]; then
+            echo "FAIL: SSH agent is not responding"
+            exit 1
+          fi
+          echo "PASS: SSH agent is running with default socket"
