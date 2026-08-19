@@ -7,48 +7,46 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Generate test SSH key
+      - name: Generate test SSH key pair
         run: |
-          ssh-keygen -t ed25519 -f /tmp/test_key_port -N "" -C "test@example.com"
-          echo "TEST_SSH_KEY<<EOF" >> $GITHUB_ENV
-          cat /tmp/test_key_port >> $GITHUB_ENV
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -C "test@example.com"
+          echo "TEST_SSH_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          cat /tmp/test_key >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - id: action
-        name: Run SSH setup action with explicit port 22
         uses: .
         with:
-          ssh-private-key: ${{ env.TEST_SSH_KEY }}
+          ssh-private-key: ${{ env.TEST_SSH_PRIVATE_KEY }}
           ssh-host: github.com
           ssh-port: '22'
 
-      - name: Assert known_hosts contains github.com
+      - name: Assert SSH agent is running
         run: |
-          echo "Checking known_hosts file..."
-          if [ ! -f "$HOME/.ssh/known_hosts" ]; then
-            echo "FAIL: known_hosts file does not exist"
+          echo "SSH_AUTH_SOCK: $SSH_AUTH_SOCK"
+          if [ -z "$SSH_AUTH_SOCK" ]; then
+            echo "FAIL: SSH_AUTH_SOCK is not set"
             exit 1
           fi
-          if ! grep -q "github.com" "$HOME/.ssh/known_hosts"; then
-            echo "FAIL: github.com not found in known_hosts"
-            cat "$HOME/.ssh/known_hosts"
-            exit 1
-          fi
-          echo "PASS: github.com found in known_hosts"
+          echo "PASS: SSH_AUTH_SOCK is set to $SSH_AUTH_SOCK"
 
-      - name: Assert SSH agent is running with key loaded
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-auth.sock
+      - name: Assert SSH key is loaded in agent
         run: |
-          echo "Checking SSH agent has keys loaded..."
-          if [ ! -S "$SSH_AUTH_SOCK" ]; then
-            echo "FAIL: Socket $SSH_AUTH_SOCK does not exist"
-            exit 1
-          fi
-          KEY_COUNT=$(ssh-add -l 2>/dev/null | wc -l)
+          KEY_COUNT=$(ssh-add -l | wc -l)
           echo "Keys in agent: $KEY_COUNT"
+          ssh-add -l
           if [ "$KEY_COUNT" -lt 1 ]; then
             echo "FAIL: No keys loaded in SSH agent"
             exit 1
           fi
-          echo "PASS: SSH agent has $KEY_COUNT key(s) loaded"
+          echo "PASS: SSH key is loaded in agent"
+
+      - name: Assert known_hosts contains github.com
+        run: |
+          echo "Contents of known_hosts:"
+          cat ~/.ssh/known_hosts || echo "(empty or missing)"
+          if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
+            echo "FAIL: github.com not found in known_hosts"
+            exit 1
+          fi
+          echo "PASS: github.com is in known_hosts"
