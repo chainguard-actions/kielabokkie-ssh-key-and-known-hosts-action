@@ -6,13 +6,13 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 ## Versions
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v1.3.5 | [`v1.3.5`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.3.5) | [`8c867c6`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/8c867c602a46dd9c8e37227b344488e79548e829) |
-| v1.4.0 | [`v1.4.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.4.0) | [`4416908`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/4416908fa0c624afeaffdc83cedea3a9076a437c) |
-| v1.4.1 | [`v1.4.1`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.4.1) | [`5b67512`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/5b675129e6aa73a496c939eb1f4a9fe4502fc324) |
-| v1.5.0 | [`v1.5.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.5.0) | [`242f53d`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/242f53d26bbd43e843b08b0cbc8287ceb03fbe71) |
-| v1.6.0 | [`v1.6.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.6.0) | [`ff80dac`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/ff80dac93ba2346f20dbc7f331286c400f0109f7) |
+| Version | Tag | Upstream commit | Hardening report |
+|---------|-----|-----------------|------------------|
+| v1.3.5 | [`v1.3.5`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.3.5) | [`8c867c6`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/8c867c602a46dd9c8e37227b344488e79548e829) | [`HARDENING.md`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/blob/v1.3.5/HARDENING.md) |
+| v1.4.0 | [`v1.4.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.4.0) | [`4416908`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/4416908fa0c624afeaffdc83cedea3a9076a437c) | [`HARDENING.md`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/blob/v1.4.0/HARDENING.md) |
+| v1.4.1 | [`v1.4.1`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.4.1) | [`5b67512`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/5b675129e6aa73a496c939eb1f4a9fe4502fc324) | [`HARDENING.md`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/blob/v1.4.1/HARDENING.md) |
+| v1.5.0 | [`v1.5.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.5.0) | [`242f53d`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/242f53d26bbd43e843b08b0cbc8287ceb03fbe71) | [`HARDENING.md`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/blob/v1.5.0/HARDENING.md) |
+| v1.6.0 | [`v1.6.0`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/tree/v1.6.0) | [`ff80dac`](https://github.com/kielabokkie/ssh-key-and-known-hosts-action/commit/ff80dac93ba2346f20dbc7f331286c400f0109f7) | [`HARDENING.md`](https://github.com/chainguard-actions/kielabokkie-ssh-key-and-known-hosts-action/blob/v1.6.0/HARDENING.md) |
 
 ## Privacy
 
